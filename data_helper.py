@@ -10,14 +10,22 @@ import os
 from os import listdir
 from os.path import isfile, join
 
-INDEX_DIR = '/data01/zihao/stock_dataset/index'
-SH_DIR = '/data01/zihao/stock_dataset/sh'
-SZ_DIR = '/data01/zihao/stock_dataset/sz'
+INDEX_DIR = '/research/zihao/stock_dataset/index'
+SH_DIR = '/research/zihao/stock_dataset/sh'
+SZ_DIR = '/research/zihao/stock_dataset/sz'
 index_list = ['开盘价', '最高价', '最低价', '收盘价', '后复权价', '前复权价', 
     '成交量', '成交额', '换手率', '流通市值', '总市值', 'MA_5', 'MA_10', 'MA_20', 'MA_30', 'MA_60',
     'MACD_DIF', 'MACD_DEA', 'MACD_MACD', 'KDJ_K', 'KDJ_D', 'KDJ_J', 'rsi1', 'rsi2', 'rsi3', '振幅', '量比', '涨跌幅']
 # index_list = index_list[-3:]
 check_number = 10
+
+def to_onehot(label_matrix, label_num):
+    assert len(label_matrix.shape) == 1
+    sample_num = label_matrix.shape[0]
+    onehot = np.zeros((sample_num, label_num))
+    for i in range(sample_num):
+        onehot[i][label_matrix[i]] = 1
+    return onehot
 
 def get_filenames_from_dir(my_dir):
     csv_files = [f for f in listdir(my_dir) if isfile(join(my_dir, f))]
@@ -55,7 +63,7 @@ def get_mlp_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=
     dataset_x = np.zeros((data_point_number, matrix.shape[1] * history_len), dtype='float32')
     dataset_label = np.zeros(data_point_number, dtype='int32')
 
-    for i in xrange(data_point_number):
+    for i in range(data_point_number):
         idx = i * predict_stride
         dataset_x[i, :] = np.reshape(matrix[idx:idx+history_len, :], matrix.shape[1] * history_len)
         dataset_label[i] = 1 if labels[idx+history_len+predict_offset-1] > 0.0 else 0
@@ -85,7 +93,7 @@ def get_rnn_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=
     dataset_y = np.zeros((data_point_number, history_len, matrix.shape[1]), dtype='float32')
     dataset_label = np.zeros(data_point_number, dtype='int32')
 
-    for i in xrange(data_point_number):
+    for i in range(data_point_number):
         idx = i * predict_stride
         dataset_x[i] = matrix[idx:idx+history_len, :]
         dataset_y[i] = matrix[idx+1:idx+history_len+1, :]
