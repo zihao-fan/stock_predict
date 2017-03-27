@@ -1,7 +1,4 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from __future__ import division
 
 import numpy as np
 import pandas as pd
@@ -9,14 +6,11 @@ import math
 import os
 from os import listdir
 from os.path import isfile, join
+from config import INDEX_DIR, SH_DIR, SZ_DIR
 
-INDEX_DIR = '../stock_dataset/index'
-SH_DIR = '../stock_dataset/sh'
-SZ_DIR = '../stock_dataset/sz'
 index_list = ['开盘价', '最高价', '最低价', '收盘价', '后复权价', '前复权价', 
     '成交量', '成交额', '换手率', '流通市值', '总市值', 'MA_5', 'MA_10', 'MA_20', 'MA_30', 'MA_60',
     'MACD_DIF', 'MACD_DEA', 'MACD_MACD', 'KDJ_K', 'KDJ_D', 'KDJ_J', 'rsi1', 'rsi2', 'rsi3', '振幅', '量比', '涨跌幅']
-# index_list = index_list[-3:]
 check_number = 10
 
 def to_onehot(label_matrix, label_num):
@@ -167,6 +161,8 @@ def get_dir_dataset(dir_name, data_set_type, max_num=None):
             (np.concatenate(x_val_all), np.concatenate(label_val_all))
 
 if __name__ == '__main__':
+    df = get_dataframe('sh600000')
+    print(df.head())
     # (x_train, label_train), (x_val, label_val) = get_mlp_dataset('sh600000', predict_stride=2)
-    (x_train, y_train, label_train), (x_val, y_val, label_val) = get_rnn_dataset('sh600000')
-    print(x_train.shape, label_train.shape)
+    # (x_train, y_train, label_train), (x_val, y_val, label_val) = get_rnn_dataset('sh600000')
+    # print(x_train.shape, label_train.shape)
