@@ -8,10 +8,16 @@ from os import listdir
 from os.path import isfile, join
 from config import INDEX_DIR, SH_DIR, SZ_DIR
 
-index_list = ['开盘价', '最高价', '最低价', '收盘价', '后复权价', '前复权价', 
-    '成交量', '成交额', '换手率', '流通市值', '总市值', 'MA_5', 'MA_10', 'MA_20', 'MA_30', 'MA_60',
-    'MACD_DIF', 'MACD_DEA', 'MACD_MACD', 'KDJ_K', 'KDJ_D', 'KDJ_J', 'rsi1', 'rsi2', 'rsi3', '振幅', '量比', '涨跌幅']
+# index_list = ['开盘价', '最高价', '最低价', '收盘价', '后复权价', '前复权价', 
+#     '成交量', '成交额', '换手率', '流通市值', '总市值', 'MA_5', 'MA_10', 'MA_20', 'MA_30', 'MA_60',
+#     'MACD_DIF', 'MACD_DEA', 'MACD_MACD', 'KDJ_K', 'KDJ_D', 'KDJ_J', 'rsi1', 'rsi2', 'rsi3', '振幅', '量比', '涨跌幅']
+index_list = ['前复权价', '换手率', 'MACD_MACD', '振幅', '量比', '涨跌幅']
+# index_list = ['前复权价', 'MACD_MACD', '涨跌幅']
 check_number = 10
+days_skipped = 365
+eps = 0.01
+threshold_bins = [-1., -2*eps, 2*eps, 1.]
+threshold_labels = [0, 1, 2]
 
 def to_onehot(label_matrix, label_num):
     assert len(label_matrix.shape) == 1
@@ -35,7 +41,6 @@ def get_filenames_from_dir(my_dir, max_num=None):
     csv_files = [f for f in listdir(my_dir) if isfile(join(my_dir, f)) and f.endswith('.csv')]
     if max_num is not None:
         csv_files = csv_files[0:min(max_num, len(csv_files))]
-        # csv_files = np.random.choice(csv_files, min(max_num, len(csv_files)), replace=False)
     return csv_files
 
 def get_dataframe(stock_code, debug=False):
@@ -61,11 +66,60 @@ def preprocess_dataset(train, val):
     val = (val - mean_vec) / max_vec
     return train, val
 
-def get_mlp_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=1):
-    raw_df = get_dataframe(stock_code)
-    matrix = raw_df.values[1:, 0:-1]
-    labels = raw_df.values[1:, -1]
+def distribution_in_labels(label_input):
+    label = label_input.flatten()
+    value_dict = {}
+    total_num = label.shape[0]
+    for i in range(total_num):
+        current = label[i]
+        if current not in value_dict:
+            value_dict[current] = 1
+        else:
+            value_dict[current] += 1
+    for key, value in value_dict.items():
+        value_dict[key] = float(value) / total_num
+    return value_dict
 
+def get_market_label(df, look_back=3):
+    '''
+    TODO
+    '''
+    labels = df.values[:, -1]
+    num = labels.shape[0]
+    new_labels = np.zeros(num, dtype=np.int32)
+    for i in range(num):
+        if i < look_back:
+            continue
+        rise = True
+        fall = True
+        for j in range(look_back):
+            rise = rise and labels[i - j] > 0.
+            fall = fall and labels[i - j] < 0.
+        if rise or fall:
+            new_labels[i] = 1
+    counter = 0
+    for index, row in df.iterrows():
+        df.set_value(index, '涨跌幅', new_labels[counter])
+        counter += 1
+    return df
+
+def dataset_sampling(x, y, ratio=0.2):
+    number = x.shape[0]
+    selected = np.random.choice(number, int(ratio*number), replace=False)
+    return x[selected], y[selected]
+
+def get_mlp_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=1, label='rise/fall'):
+    assert label in ['rise/fall', 'market'], 'Please give supported label type.'
+    raw_df = get_dataframe(stock_code)
+    raw_df = raw_df[days_skipped:] # skip the first year for stable data
+    # print(raw_df)
+    if label == 'rise/fall':
+        raw_df['涨跌幅'] = pd.cut(raw_df['涨跌幅'], threshold_bins, labels=threshold_labels) # binning the label
+    elif label == 'market':
+        raw_df = get_market_label(raw_df)
+    # print('The rise/fall distribution in', stock_code, 'is\n', raw_df['涨跌幅'].value_counts(normalize=True))
+    matrix = raw_df.values[:, 0:-1]
+    labels = raw_df.values[:, -1]
     data_point_number = ((matrix.shape[0] - history_len - predict_offset) // predict_stride) + 1
     if data_point_number <= 0:
         return (None, None), (None, None)
@@ -78,20 +132,31 @@ def get_mlp_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=
     for i in range(data_point_number):
         idx = i * predict_stride
         dataset_x[i, :] = np.reshape(matrix[idx:idx+history_len, :], matrix.shape[1] * history_len)
-        dataset_label[i] = 1 if labels[idx+history_len+predict_offset-1] > 0.0 else 0
+        dataset_label[i] = labels[idx+history_len+predict_offset-1]
 
     x_train = dataset_x[0:train_size, :]
     x_val = dataset_x[train_size:, :]
     label_train = dataset_label[0:train_size]
     label_val = dataset_label[train_size:]
     assert x_train.shape[0] + x_val.shape[0] == data_point_number
-    x_train, x_val = preprocess_dataset(x_train, x_val)
+
+    train_dist = distribution_in_labels(label_train)
+    val_dist = distribution_in_labels(label_val)
+    print('Train label distribution', train_dist, 'Val label distribution', val_dist)
+    # x_train, x_val = preprocess_dataset(x_train, x_val)
     return (x_train, label_train), (x_val, label_val)
 
-def get_rnn_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=1):
+def get_rnn_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=1, label='rise/fall'):
+    assert label in ['rise/fall', 'market'], 'Please give supported label type.'
     raw_df = get_dataframe(stock_code)
-    matrix = raw_df.values[1:, 0:-1]
-    labels = raw_df.values[1:, -1]
+    raw_df = raw_df[days_skipped:]
+    if label == 'rise/fall':
+        raw_df['涨跌幅'] = pd.cut(raw_df['涨跌幅'], threshold_bins, labels=threshold_labels) # binning the label
+    elif label == 'market':
+        raw_df = get_market_label(raw_df)
+    # print('The rise/fall distribution in', stock_code, 'is\n', raw_df['涨跌幅'].value_counts(normalize=True))
+    matrix = raw_df.values[:, 0:-1]
+    labels = raw_df.values[:, -1]
 
     data_point_number = ((matrix.shape[0] - history_len - predict_offset) // predict_stride) + 1
     if data_point_number <= 0:
@@ -106,10 +171,9 @@ def get_rnn_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=
     for i in range(data_point_number):
         idx = i * predict_stride
         dataset_x[i] = matrix[idx:idx+history_len, :]
-        # dataset_y[i] = matrix[idx+1:idx+history_len+1, :]
         for j in range(history_len):
-            dataset_y[i, j] = 1 if labels[idx+1+j] > 0.0 else 0
-        dataset_label[i] = 1 if labels[idx+history_len+predict_offset-1] > 0.0 else 0
+            dataset_y[i, j] = labels[idx + 1 + j]
+        dataset_label[i] = labels[idx + history_len + predict_offset - 1]
 
     x_train = dataset_x[0:train_size]
     x_val = dataset_x[-val_size:]
@@ -118,7 +182,9 @@ def get_rnn_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=
     label_train = dataset_label[0:train_size]
     label_val = dataset_label[-val_size:]
 
-    x_train, x_val = preprocess_dataset(x_train, x_val)
+    train_dist = distribution_in_labels(y_train)
+    val_dist = distribution_in_labels(y_val)
+    print('Train y distribution', train_dist, 'Val y distribution', val_dist)
 
     return (x_train, y_train, label_train), (x_val, y_val, label_val)
 
@@ -161,8 +227,4 @@ def get_dir_dataset(dir_name, data_set_type, max_num=None):
             (np.concatenate(x_val_all), np.concatenate(label_val_all))
 
 if __name__ == '__main__':
-    df = get_dataframe('sh600000')
-    print(df.head())
-    # (x_train, label_train), (x_val, label_val) = get_mlp_dataset('sh600000', predict_stride=2)
-    # (x_train, y_train, label_train), (x_val, y_val, label_val) = get_rnn_dataset('sh600000')
-    # print(x_train.shape, label_train.shape)
+    (x_train, label_train), (x_val, label_val) = get_mlp_dataset('sh600000', label='market')
