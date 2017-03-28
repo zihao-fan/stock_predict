@@ -112,7 +112,7 @@ def get_mlp_dataset(stock_code, history_len=5, predict_offset=1, predict_stride=
     assert label in ['rise/fall', 'market'], 'Please give supported label type.'
     raw_df = get_dataframe(stock_code)
     raw_df = raw_df[days_skipped:] # skip the first year for stable data
-    # print(raw_df)
+    # print(raw_df['涨跌幅'].describe())
     if label == 'rise/fall':
         raw_df['涨跌幅'] = pd.cut(raw_df['涨跌幅'], threshold_bins, labels=threshold_labels) # binning the label
     elif label == 'market':

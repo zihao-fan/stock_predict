@@ -20,8 +20,8 @@ def histogram_by_label(df, feature_name):
     y = df[feature_name].values
     hist, bin_edges = np.histogram(y, bins='auto')
 
-    rise = df.loc[df['涨跌幅'] > 0.0][feature_name].values
-    fall = df.loc[df['涨跌幅'] < 0.0][feature_name].values
+    rise = df.loc[df['涨跌幅'] > 0.02][feature_name].values
+    fall = df.loc[df['涨跌幅'] < -0.02][feature_name].values
 
     pyplot.hist(rise, bins=bin_edges, normed=True, alpha=0.5, label='rise')
     pyplot.hist(fall, bins=bin_edges, normed=True, alpha=0.5, label='fall')
@@ -31,6 +31,4 @@ def histogram_by_label(df, feature_name):
 
 if __name__ == '__main__':
     df = get_df('sh600004')
-    # print(df.head(20))
-    # histogram_by_label(df, '前复权价')
-    histogram_by_label(df, '量比')
+    histogram_by_label(df, 'MACD_MACD')
