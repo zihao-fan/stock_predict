@@ -11,12 +11,12 @@ from config import INDEX_DIR, SH_DIR, SZ_DIR
 # index_list = ['开盘价', '最高价', '最低价', '收盘价', '后复权价', '前复权价', 
 #     '成交量', '成交额', '换手率', '流通市值', '总市值', 'MA_5', 'MA_10', 'MA_20', 'MA_30', 'MA_60',
 #     'MACD_DIF', 'MACD_DEA', 'MACD_MACD', 'KDJ_K', 'KDJ_D', 'KDJ_J', 'rsi1', 'rsi2', 'rsi3', '振幅', '量比', '涨跌幅']
-index_list = ['前复权价', '换手率', 'MACD_MACD', '振幅', '量比', '涨跌幅']
-# index_list = ['前复权价', 'MACD_MACD', '涨跌幅']
+index_list = ['前复权价','成交量', 
+'换手率', 'MACD_DIF', 'MACD_DEA', 'MACD_MACD', 'rsi1', '量比', '涨跌幅']
 check_number = 10
 days_skipped = 365
-eps = 0.01
-threshold_bins = [-1., -2*eps, 2*eps, 1.]
+std = 0.025
+threshold_bins = [-1., -std, std, 1.]
 threshold_labels = [0, 1, 2]
 
 def to_onehot(label_matrix, label_num):
