@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import pandas as pd
-import data_helper
-from data_helper import index_list, days_skipped
 
 from matplotlib import pyplot
 
@@ -28,6 +25,9 @@ def histogram_by_label(df, feature_name):
     pyplot.legend(loc='upper right')
     # pyplot.title(feature_name)
     pyplot.show()
+
+def plot_line(y_dict, x=None):
+    pass
 
 if __name__ == '__main__':
     df = get_df('sh600004')

@@ -21,14 +21,17 @@ def mlp_model(input_dim, seq_len, hidden_size, num_class, activation_func='tanh'
 
 def lstm_model(input_dim, seq_len, hidden_size, num_class, activation_func='tanh'):
     input_layer = Input(shape=(seq_len, input_dim))
-    bn = BatchNormalization()(input_layer)
-    lstm_sequence = LSTM(hidden_size, return_sequences=True)(bn)
-    hidden_after_rnn = TimeDistributed(Dense(hidden_size, activation=activation_func), name='hidden_after_rnn')(lstm_sequence)
-    output_layer = TimeDistributed(Dense(num_class, activation='softmax'), name='softmax_output')(hidden_after_rnn)
+    # bn = BatchNormalization()(input_layer)
+    lstm_sequence_1 = LSTM(hidden_size, return_sequences=True)(input_layer)
+    lstm_sequence_2 = LSTM(hidden_size, return_sequences=True)(lstm_sequence_1)
+    lstm_out = LSTM(hidden_size, return_sequences=False)(lstm_sequence_2)
+    hidden_after_rnn = Dense(hidden_size, activation=activation_func)(lstm_out)
+    output_layer = Dense(num_class, activation='linear')(hidden_after_rnn)
 
     model = Model(input=input_layer, output=output_layer)
     adam = Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-07, decay=0.0, clipnorm=clip_norm)
-    model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
-    # model.summary()
+    model.compile(optimizer=adam, 
+                loss='mean_squared_error', metrics=['mae', 'acc'])
+    model.summary()
 
     return model
