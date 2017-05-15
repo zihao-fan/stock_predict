@@ -91,10 +91,10 @@ def add_rate(df):
     df['rate'] = rate_series
     return df
 
-def add_rate_categories(df):
+def add_rate_categories(df, binnum1, binnum2):
     rates = df['rate'].values
-    bins = get_equal_bin_edges(df['rate'], 100)
-    bins_pred = get_equal_bin_edges(df['rate'], 3)
+    bins = get_equal_bin_edges(df['rate'], binnum1)
+    bins_pred = get_equal_bin_edges(df['rate'], binnum2)
     print 'bins', bins
     print 'bins pred', bins_pred
     categories = np.digitize(rates, bins)
@@ -106,10 +106,10 @@ def add_rate_categories(df):
 if __name__ == '__main__':
     datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
     data = read_pickle(datafile_path)
-    if 'rate' not in data.columns:
-        print 'Adding rate to data'
+    if 'rate' in data.columns:
+        # print 'Adding rate to data'
         # data = add_rate(data)
-        data = add_rate_categories(data)
+        data = add_rate_categories(data, 100, 3)
         data.to_pickle(datafile_path)
         print 'New dataframe save to', datafile_path
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_pretrain_dataset(data, 20, 1)

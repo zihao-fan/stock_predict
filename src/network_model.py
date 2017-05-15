@@ -5,8 +5,9 @@ from keras.optimizers import RMSprop, Adam
 from keras.constraints import max_norm, unit_norm
 from keras.layers.embeddings import Embedding
 from keras.layers import Input, Dense, LSTM, TimeDistributed, merge, Embedding, Masking, Activation
+from keras.layers.wrappers import Bidirectional
 from keras.layers.normalization import BatchNormalization
-from config import learning_rate, clip_norm
+from config import learning_rate, clip_norm, dropout_rate
 
 def mlp_model(input_dim, seq_len, hidden_size, num_class, activation_func='tanh'):
     input_layer = Input(shape=(input_dim*seq_len,))
@@ -36,14 +37,15 @@ def lstm_pretrain_model(num_class, seq_len, embedd_dim, hidden_size, activation_
 
     return model
 
-def lstm_classification_model(input_dim, seq_len, hidden_size, num_class, activation_func='tanh'):
-    input_layer = Input(shape=(seq_len, input_dim))
-    lstm_sequence_1 = LSTM(hidden_size, return_sequences=True)(input_layer)
-    lstm_out = LSTM(hidden_size, return_sequences=False)(lstm_sequence_1)
-    hidden_after_rnn = Dense(hidden_size, activation=activation_func)(lstm_out)
-    output_layer = Dense(num_class+1, activation='softmax')(hidden_after_rnn)
+def lstm_classification_model(num_class, seq_len, embedd_dim, hidden_size, out_num, activation_func='tanh'):
+    main_input = Input(shape=(seq_len,), dtype='int32', name='main_input')
+    embedding = Embedding(output_dim=embedd_dim, input_dim=num_class+1, input_length=seq_len, mask_zero=True)(main_input)
+    lstm_sequence = LSTM(hidden_size, dropout=dropout_rate, return_sequences=True)(embedding)
+    lstm_out = LSTM(hidden_size, dropout=dropout_rate, return_sequences=False)(lstm_sequence)
+    # hidden_after_rnn = Dense(hidden_size, activation=activation_func)(lstm_out)
+    output_layer = Dense(out_num+1, activation='softmax')(lstm_out)
 
-    model = Model(input=input_layer, output=output_layer)
+    model = Model(input=main_input, output=output_layer)
     adam = Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-07, decay=0.0)
     model.compile(optimizer=adam, 
                 loss='categorical_crossentropy', metrics=['acc'])
