@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import os
 import pandas as pd
-
 from matplotlib import pyplot
+from highfreq_helper import get_equal_bin_edges
 
 bins = [-1., 0.0, 1.]
 labels = ['fall', 'rise']
+current_path = os.path.realpath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
 
 def get_df(stock_code):
     raw_df = data_helper.get_dataframe(stock_code)
@@ -26,9 +29,14 @@ def histogram_by_label(df, feature_name):
     # pyplot.title(feature_name)
     pyplot.show()
 
-def plot_line(y_dict, x=None):
-    pass
+def plot_feature_hisogram(df, feature_name):
+    x = df[feature_name].values
+    bin_edges = get_equal_bin_edges(x, 100)
+    print 'bin_edges', bin_edges, 'len', len(bin_edges)
+    pyplot.hist(x, bins=bin_edges, normed=True)
+    pyplot.show()
 
 if __name__ == '__main__':
-    df = get_df('sh600004')
-    histogram_by_label(df, 'MACD_MACD')
+    datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
+    data = pd.read_pickle(datafile_path)
+    plot_feature_hisogram(data, 'rate')
