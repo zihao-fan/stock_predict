@@ -101,4 +101,4 @@ def train():
 
 if __name__ == '__main__':
     train()
-    test('epoch_' + str(epoch) + '_predict.model')
+    test('epoch_' + str(epochs) + '_predict.model')
