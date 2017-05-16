@@ -5,12 +5,8 @@ import network_model
 import highfreq_helper
 from highfreq_helper import root_path
 from keras.models import load_model
+from config import batch_size, epochs, time_steps, embedding_dim, hidden_size
 
-batch_size = 32
-epochs = 10
-time_steps = 20
-embedding_dim = 100
-hidden_size = 100
 bins_num = 100
 pretrain_skew = 1
 predict_skew = 20
