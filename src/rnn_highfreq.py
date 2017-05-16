@@ -94,7 +94,7 @@ def train():
         train_x = train_x[shuffled_rank]
         train_y = train_y[shuffled_rank]
         model.fit(train_x, train_y, batch_size=batch_size, 
-            class_weight={0:0., 1:0.4, 2:0.2, 3:0.4}, validation_data=(val_x, val_y))
+            class_weight={0:0., 1:0.38, 2:0.24, 3:0.38}, validation_data=(val_x, val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
         print 'model saved to', os.path.join(models_path, model_name)
