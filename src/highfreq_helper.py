@@ -4,20 +4,18 @@ import numpy as np
 import os
 from scipy import stats
 from keras.utils.np_utils import to_categorical
+from config import PRETRAIN_SKEW, PRETRAIN_BIN
+from config import PREDICT_SKEW, PREDICT_BIN
+from config import val_ratio, test_ratio
+from config import time_steps
 
 current_path = os.path.realpath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
 
-PRETRAIN_SKEW = 1
-PRETRAIN_BIN = 100
-
-PREDICT_SKEW = 20
-PREDICT_BIN = 3
-
 def read_pickle(file_path):
     return pd.read_pickle(file_path)
 
-def split_data(data, val_ratio=0.1, test_ratio=0.2):
+def split_data(data):
     ntest = int(round( len(data) * (1 - test_ratio) ))
     nval = int(round( len(data.iloc[:ntest]) * (1 - val_ratio) ))
 
@@ -83,8 +81,8 @@ def get_equal_bin_edges(data, bin_num):
         ratio[i] = ratio[i] * i / bin_num
     # print ratio
     bin_edges = stats.mstats.mquantiles(data, ratio)
-    bin_edges[0] = -0.2
-    bin_edges[bin_num] = 0.2
+    bin_edges[0] = -1.0
+    bin_edges[bin_num] = 1.0
     return bin_edges
 
 def add_rate(df, skew1, skew2):
@@ -92,9 +90,11 @@ def add_rate(df, skew1, skew2):
     rate_array_1 = np.zeros_like(close_price)
     rate_array_2 = np.zeros_like(close_price)
     for i in range(rate_array_1.shape[0] - skew1):
-        rate_array_1[i + skew1] = (close_price[i + skew1] - close_price[i]) / close_price[i]
+        # rate_array_1[i + skew1] = (close_price[i + skew1] - close_price[i]) / close_price[i] # rate return
+        rate_array_1[i + skew1] = np.log(close_price[i + skew1]) - np.log(close_price[i])
     for i in range(rate_array_2.shape[0] - skew2):
-        rate_array_2[i + skew2] = (close_price[i + skew2] - close_price[i]) / close_price[i]
+        # rate_array_2[i + skew2] = (close_price[i + skew2] - close_price[i]) / close_price[i] # rate return
+        rate_array_2[i + skew2] = np.log(close_price[i + skew2]) - np.log(close_price[i])
     df = df.iloc[max(skew1, skew2):]
     rate_series_1 = pd.Series(rate_array_1[max(skew1, skew2):], index=df.index)
     rate_series_2 = pd.Series(rate_array_2[max(skew1, skew2):], index=df.index)
@@ -104,9 +104,14 @@ def add_rate(df, skew1, skew2):
 
 def add_rate_categories(df, skew1, skew2, binnum1, binnum2):
     rates_1 = df['rate_'+str(skew1)].values
+    train_1, _, _ = split_data(df['rate_'+str(skew1)])
+    
     rates_2 = df['rate_'+str(skew2)].values
-    bins = get_equal_bin_edges(rates_1, binnum1)
-    bins_pred = get_equal_bin_edges(rates_2, binnum2)
+    train_2, _, _ = split_data(df['rate_'+str(skew2)])
+    
+    bins = get_equal_bin_edges(train_1.values, binnum1)
+    bins_pred = get_equal_bin_edges(train_2.values, binnum2)
+    
     print 'bins', bins
     print 'bins pred', bins_pred
     categories = np.digitize(rates_1, bins)
@@ -125,7 +130,7 @@ if __name__ == '__main__':
     print data.describe()
     data.to_pickle(outpath)
     print 'New dataframe save to', outpath
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_pretrain_dataset(data, 20, PRETRAIN_SKEW)
+    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_pretrain_dataset(data, time_steps * 20, PRETRAIN_SKEW)
     # (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_predict_dataset(data, 20, PREDICT_SKEW)
     print train_x[0], train_y[0]
     print train_x.shape, train_y.shape
