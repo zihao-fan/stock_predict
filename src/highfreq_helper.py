@@ -4,8 +4,8 @@ import numpy as np
 import os
 from scipy import stats
 from keras.utils.np_utils import to_categorical
-from config import PRETRAIN_SKEW, PRETRAIN_BIN
-from config import PREDICT_SKEW, PREDICT_BIN
+from config import INPUT_SKEW, INPUT_BIN
+from config import OUTPUT_SKEW, OUTPUT_BIN
 from config import val_ratio, test_ratio
 from config import time_steps
 
@@ -125,12 +125,12 @@ if __name__ == '__main__':
     outpath = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
     rawdata = read_pickle(rawdata_path)
     print 'Adding rate to data'
-    data = add_rate(rawdata, PRETRAIN_SKEW, PREDICT_SKEW)
-    data = add_rate_categories(data, PRETRAIN_SKEW, PREDICT_SKEW, PRETRAIN_BIN, PREDICT_BIN)
+    data = add_rate(rawdata, INPUT_SKEW, OUTPUT_SKEW)
+    data = add_rate_categories(data, INPUT_SKEW, OUTPUT_SKEW, INPUT_BIN, OUTPUT_BIN)
     print data.describe()
     data.to_pickle(outpath)
     print 'New dataframe save to', outpath
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_pretrain_dataset(data, time_steps * 20, PRETRAIN_SKEW)
-    # (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_predict_dataset(data, 20, PREDICT_SKEW)
+    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_pretrain_dataset(data, time_steps * 20, INPUT_SKEW)
+    # (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_predict_dataset(data, 20, OUTPUT_SKEW)
     print train_x[0], train_y[0]
     print train_x.shape, train_y.shape
