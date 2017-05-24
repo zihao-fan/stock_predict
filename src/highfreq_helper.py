@@ -8,6 +8,7 @@ from config import INPUT_SKEW, INPUT_BIN
 from config import OUTPUT_SKEW, OUTPUT_BIN
 from config import val_ratio, test_ratio
 from config import time_steps
+from sklearn.preprocessing import StandardScaler
 
 current_path = os.path.realpath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
@@ -120,17 +121,98 @@ def add_rate_categories(df, skew1, skew2, binnum1, binnum2):
     df['rate_pred'] = pd.Series(categories_pred, index=df.index)
     return df
 
+def add_label_df(df):
+    df['next_min'] = df['closePrice'].shift(-1)
+    df['next_hour'] = df['closePrice'].shift(-60)
+    df['next_day'] = df['closePrice'].shift(-240)
+
+    ascent = lambda row, target: 1 if row['closePrice'] <= row[target] else 0
+    df['ascent_next'] = df.apply(ascent, axis=1, args=['next_min']).astype(int)
+    df['ascent_hour'] = df.apply(ascent, axis=1, args=['next_hour']).astype(int)
+    df['ascent_day'] = df.apply(ascent, axis=1, args=['next_day']).astype(int)
+
+    return df 
+
+def make_data(data, time_steps, label):
+    serX, serY = [], []
+    ydata = data[label].as_matrix()
+    data = data.drop([label], axis=1).as_matrix()
+    # data = data.as_matrix()
+    for i in xrange(len(data)-time_steps):
+        serX.append(data[i:i+time_steps])
+        serY.append(ydata[i+time_steps])
+    inputX = np.array(serX)
+    inputY = np.array(serY)
+    return inputX, inputY
+
+def normalize_dataset(train, val, test):
+    mean_vec = np.mean(train, axis=0)
+    std_vec = np.std(train, axis=0)
+    train = (train - mean_vec) / std_vec
+    val = (val - mean_vec) / std_vec
+    test = (test - mean_vec) / std_vec
+    return train, val, test
+
+def generate_rnn_data(df, time_steps, label):
+    '''
+    
+    drop the data
+
+    '''
+    df = df.drop(['currencyCD'], axis=1)
+
+    df['null_count'] = df.apply(lambda row: row.isnull().sum(), axis=1)
+    df = df[df['null_count']==0]
+    df = df.drop(['null_count'], axis=1)
+
+    to_drop = ['unit', 'ticker', 'exchangeCD', 'shortNM', 'barTime']
+    to_drop_start = ['ascent', 'next']
+    for col in df.columns:
+        for x in to_drop_start:
+            if col.startswith(x):
+                to_drop.append(col)
+                break
+    if label in to_drop:
+        to_drop.remove(label)
+    df = df.drop(to_drop, axis=1)
+
+    '''
+    split the data
+    '''
+
+    df_train, df_val, df_test = split_data(df)
+
+    '''
+    make it input and output
+    '''
+    train_x, train_y = make_data(df_train, time_steps, label)
+    val_x, val_y = make_data(df_val, time_steps, label)
+    test_x, test_y = make_data(df_test, time_steps, label)
+
+    train_x, val_x, test_x = normalize_dataset(train_x, val_x, test_x)
+
+    return (train_x, train_y), (val_x, val_y), (test_x, test_y)
+
+
 if __name__ == '__main__':
     rawdata_path = os.path.join(root_path, 'raw_data', '000905_20100101_20170515.data')
     outpath = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
     rawdata = read_pickle(rawdata_path)
+    # df = rawdata.iloc[:]
+    # df = add_label_df(df)
+    # df.to_pickle(outpath)
+    # print 'New dataframe save to', outpath
+    # df = read_pickle(outpath)
+    # (train_x, train_y), (val_x, val_y), (test_x, test_y) = generate_rnn_data(df, 180, 'ascent_hour')
+    # print train_x.shape, train_y.shape
+
+    ''' ========================================================= '''
     print 'Adding rate to data'
     data = add_rate(rawdata, INPUT_SKEW, OUTPUT_SKEW)
     data = add_rate_categories(data, INPUT_SKEW, OUTPUT_SKEW, INPUT_BIN, OUTPUT_BIN)
     print data.describe()
     data.to_pickle(outpath)
     print 'New dataframe save to', outpath
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_pretrain_dataset(data, time_steps * 20, INPUT_SKEW)
-    # (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_predict_dataset(data, 20, OUTPUT_SKEW)
+    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_predict_dataset(data, 20, OUTPUT_SKEW)
     print train_x[0], train_y[0]
     print train_x.shape, train_y.shape

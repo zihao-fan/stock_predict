@@ -3,6 +3,8 @@ data/
 src/config.py
 models/
 *DS_STORE
+raw_data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

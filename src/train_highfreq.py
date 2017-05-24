@@ -15,6 +15,9 @@ results_path = os.path.join(root_path, 'results')
 datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
 data = highfreq_helper.read_pickle(datafile_path)
 
+# datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170524.data')
+# data = highfreq_helper.read_pickle(datafile_path)
+
 def evaluate(prediction, label):
     total_number = 0
     hit_number = 0
@@ -84,13 +87,13 @@ def pretrain():
                                             hidden_size)
 
 
-def train_rnn():
+def train_rnn(day_num=1):
 
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
-                                                                            time_steps, OUTPUT_SKEW)
+                                                                            day_num * time_steps, OUTPUT_SKEW)
 
     model = network_model.rnn_classification_model(INPUT_BIN, 
-                                                    time_steps, 
+                                                    day_num * time_steps, 
                                                     embedding_dim, 
                                                     hidden_size, 
                                                     OUTPUT_BIN)
@@ -155,10 +158,28 @@ def train_cnn(day_num=10):
         model.save(os.path.join(models_path, model_name))
         print 'model saved to', os.path.join(models_path, model_name)
 
+def train_real_value(mins=120, label='ascent_hour'):
+
+    (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.generate_rnn_data(data, mins, label)
+    print('train_x shape', train_x.shape, 'train_y shape', train_y.shape)
+    model = network_model.rnn_realvalue_model(mins, train_x.shape[2], hidden_size)
+
+    for e in range(epochs):
+        print '------------Training model-----------, epoch', e + 1
+        shuffled_rank = np.random.permutation(train_x.shape[0])
+        train_x = train_x[shuffled_rank]
+        train_y = train_y[shuffled_rank]
+        model.fit(train_x, train_y, batch_size=batch_size, 
+            # class_weight={0:0., 1:0.38, 2:0.24, 3:0.38}, 
+            validation_data=(val_x, val_y))
+        model_name = 'epoch_' + str(e + 1) + '_predict.model'
+        model.save(os.path.join(models_path, model_name))
+        print 'model saved to', os.path.join(models_path, model_name)
 
 if __name__ == '__main__':
-    days = 10
+    days = 20
     # train_rnn(days)
     # train_mlp(days)
     train_cnn(days)
+    # train_real_value()
     test('epoch_' + str(epochs) + '_predict.model', days)
