@@ -33,16 +33,17 @@ def evaluate(prediction, label):
         if prediction[i] == label[i]:
             hit_number += 1
 
-        if (prediction[i] != 2) == (label[i] != 2):
-            market_hit += 1
+        # if (prediction[i] != 2) == (label[i] != 2):
+        #     market_hit += 1
         
-        # rise fall result
-        if label[i] != 2 and prediction[i] != 2: # rise or fall
-            rise_fall_total += 1
-            if prediction[i] == label[i]:
-                rise_fall_hit += 1
+        # # rise fall result
+        # if label[i] != 2 and prediction[i] != 2: # rise or fall
+        #     rise_fall_total += 1
+        #     if prediction[i] == label[i]:
+        #         rise_fall_hit += 1
         
-    return float(hit_number) / total_number, float(rise_fall_hit) / rise_fall_total, float(market_hit) / total_number
+    # return float(hit_number) / total_number, float(rise_fall_hit) / rise_fall_total, float(market_hit) / total_number
+    return float(hit_number) / total_number
 
 def get_stats_dict(array):
     stats = {}
@@ -56,14 +57,14 @@ def get_stats_dict(array):
     return stats
 
 def test(model_name, day_num=10):
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
+    (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
                                                                             day_num * time_steps, OUTPUT_SKEW)
 
     print('test_x shape', test_x.shape, 'test_y shape', test_y.shape)
     model = load_model(os.path.join(models_path, model_name))
     
     print 'Testing the model'
-    prediction = model.predict(test_x)
+    prediction = model.predict([test_x, test_vol])
     train_labels = np.argmax(train_y, axis=-1)
     labels = np.argmax(test_y, axis=-1)
     prediction = np.argmax(prediction, axis=-1)
@@ -74,8 +75,8 @@ def test(model_name, day_num=10):
     print 'prediciton stats', prediction_stats
     print 'label stats', label_stats
 
-    acc, accrf, acc_market = evaluate(prediction, labels)
-    print 'acc', acc, 'acc rise fall', accrf, 'acc market', acc_market
+    acc = evaluate(prediction, labels)
+    print 'acc', acc
 
 def pretrain():
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_pretrain_dataset(data, 
@@ -89,7 +90,7 @@ def pretrain():
 
 def train_rnn(day_num=1):
 
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
+    (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
                                                                             day_num * time_steps, OUTPUT_SKEW)
 
     model = network_model.rnn_classification_model(INPUT_BIN, 
@@ -102,10 +103,11 @@ def train_rnn(day_num=1):
         print '------------Training model-----------, epoch', e + 1
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
+        train_vol = train_vol[shuffled_rank]
         train_y = train_y[shuffled_rank]
-        model.fit(train_x, train_y, batch_size=batch_size, 
+        model.fit([train_x, train_vol], train_y, batch_size=batch_size, 
             # class_weight={0:0., 1:0.38, 2:0.24, 3:0.38}, 
-            validation_data=(val_x, val_y))
+            validation_data=([val_x, val_vol], val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
         print 'model saved to', os.path.join(models_path, model_name)
@@ -135,10 +137,10 @@ def train_mlp(day_num=10):
 
 def train_cnn(day_num=10):
 
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
+    (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
                                                                             day_num * time_steps, OUTPUT_SKEW)
 
-    print('train_x shape', train_x.shape, 'train_y shape', train_y.shape)
+    print('train_x shape', train_x.shape, 'train_vol shape', train_vol.shape, 'train_y shape', train_y.shape)
     model = network_model.cnn_model(INPUT_BIN,
                                     day_num * time_steps, 
                                     embedding_dim,
@@ -150,10 +152,11 @@ def train_cnn(day_num=10):
         print '------------Training model-----------, epoch', e + 1
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
+        train_vol = train_vol[shuffled_rank]
         train_y = train_y[shuffled_rank]
-        model.fit(train_x, train_y, batch_size=batch_size, 
+        model.fit([train_x, train_vol], train_y, batch_size=batch_size, 
             # class_weight={0:0., 1:0.38, 2:0.24, 3:0.38}, 
-            validation_data=(val_x, val_y))
+            validation_data=([val_x, val_vol], val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
         print 'model saved to', os.path.join(models_path, model_name)
@@ -177,7 +180,7 @@ def train_real_value(mins=120, label='ascent_hour'):
         print 'model saved to', os.path.join(models_path, model_name)
 
 if __name__ == '__main__':
-    days = 20
+    days = 10
     # train_rnn(days)
     # train_mlp(days)
     train_cnn(days)

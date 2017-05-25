@@ -38,22 +38,26 @@ def rnn_data(data, time_steps, skew, labels=False):
     return np.asarray(rnn_df)
 
 def get_rnn_predict_dataset(data, time_steps, skew):
-    df_train, df_val, df_test = split_data(data['rate_cate'])
-    df_train_y, df_val_y, df_test_y = split_data(data['rate_pred'])
+    df_train, df_val, df_test = split_data(data[['rate_cate', 'volume_in', 'rate_pred']])
+    # df_train_y, df_val_y, df_test_y = split_data(data['rate_pred'])
 
-    train_x = rnn_data(df_train, time_steps, 0, labels=False)
-    train_y = rnn_data(df_train_y, time_steps, skew, labels=True)
+    train_x = rnn_data(df_train['rate_cate'], time_steps, 0, labels=False)
+    train_vol = rnn_data(df_train['volume_in'], time_steps, 0, labels=False)
+    train_y = rnn_data(df_train['rate_pred'], time_steps, skew, labels=True)
 
-    val_x = rnn_data(df_val, time_steps, 0, labels=False)
-    val_y = rnn_data(df_val_y, time_steps, skew, labels=True)
+    val_x = rnn_data(df_val['rate_cate'], time_steps, 0, labels=False)
+    val_vol = rnn_data(df_val['volume_in'], time_steps, 0, labels=False)
+    val_y = rnn_data(df_val['rate_pred'], time_steps, skew, labels=True)
 
-    test_x = rnn_data(df_test, time_steps, 0, labels=False)
-    test_y = rnn_data(df_test_y, time_steps, skew, labels=True)
+    test_x = rnn_data(df_test['rate_cate'], time_steps, 0, labels=False)
+    test_vol = rnn_data(df_test['volume_in'], time_steps, 0, labels=False)
+    test_y = rnn_data(df_test['rate_pred'], time_steps, skew, labels=True)
 
     train_x, val_x, test_x = np.squeeze(train_x[:-skew]), np.squeeze(val_x[:-skew]), np.squeeze(test_x[:-skew])
+    train_vol, val_vol, test_vol = np.squeeze(train_vol[:-skew]), np.squeeze(val_vol[:-skew]), np.squeeze(test_vol[:-skew])
     train_y, val_y, test_y = to_categorical(train_y), to_categorical(val_y), to_categorical(test_y)
 
-    return (train_x, train_y), (val_x, val_y), (test_x, test_y)
+    return (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y)
 
 
 def get_rnn_pretrain_dataset(data, time_steps, skew):
@@ -82,42 +86,58 @@ def get_equal_bin_edges(data, bin_num):
         ratio[i] = ratio[i] * i / bin_num
     # print ratio
     bin_edges = stats.mstats.mquantiles(data, ratio)
-    bin_edges[0] = -1.0
-    bin_edges[bin_num] = 1.0
+    bin_edges[0] = -100.0
+    bin_edges[bin_num] = 100.0
     return bin_edges
 
 def add_rate(df, skew1, skew2):
     close_price = df['closePrice'].values
+    total_volume = df['totalVolume'].values
     rate_array_1 = np.zeros_like(close_price)
     rate_array_2 = np.zeros_like(close_price)
+    volume_array_1 = np.zeros_like(total_volume)
     for i in range(rate_array_1.shape[0] - skew1):
         # rate_array_1[i + skew1] = (close_price[i + skew1] - close_price[i]) / close_price[i] # rate return
         rate_array_1[i + skew1] = np.log(close_price[i + skew1]) - np.log(close_price[i])
+        volume_array_1[i + skew1] = np.log(total_volume[i + skew1] + 1e-6) - np.log(total_volume[i] + 1e-6)
     for i in range(rate_array_2.shape[0] - skew2):
         # rate_array_2[i + skew2] = (close_price[i + skew2] - close_price[i]) / close_price[i] # rate return
         rate_array_2[i + skew2] = np.log(close_price[i + skew2]) - np.log(close_price[i])
     df = df.iloc[max(skew1, skew2):]
     rate_series_1 = pd.Series(rate_array_1[max(skew1, skew2):], index=df.index)
     rate_series_2 = pd.Series(rate_array_2[max(skew1, skew2):], index=df.index)
+    volume_series_1 = pd.Series(volume_array_1[max(skew1, skew2):], index=df.index)
     df['rate_'+str(skew1)] = rate_series_1
     df['rate_'+str(skew2)] = rate_series_2
+    df['volume_'+str(skew1)] = volume_series_1
     return df
 
 def add_rate_categories(df, skew1, skew2, binnum1, binnum2):
     rates_1 = df['rate_'+str(skew1)].values
     train_1, _, _ = split_data(df['rate_'+str(skew1)])
     
+    volume_1 = df['volume_'+str(skew1)].values
+    train_volume, _, _ = split_data(df['volume_'+str(skew1)])
+    
     rates_2 = df['rate_'+str(skew2)].values
     train_2, _, _ = split_data(df['rate_'+str(skew2)])
     
-    bins = get_equal_bin_edges(train_1.values, binnum1)
-    bins_pred = get_equal_bin_edges(train_2.values, binnum2)
+    # bins = get_equal_bin_edges(train_1.values, binnum1)
+    # bins_volume = get_equal_bin_edges(train_volume.values, binnum1)
+    # bins_pred = get_equal_bin_edges(train_2.values, binnum2)
+
+    bins = get_equal_bin_edges(df['rate_'+str(skew1)].values, binnum1)
+    bins_volume = get_equal_bin_edges(df['volume_'+str(skew1)].values, binnum1)
+    bins_pred = get_equal_bin_edges(df['rate_'+str(skew2)].values, binnum2)
     
     print 'bins', bins
+    print 'bins volume', bins_volume
     print 'bins pred', bins_pred
     categories = np.digitize(rates_1, bins)
+    categories_volume = np.digitize(volume_1, bins_volume)
     categories_pred = np.digitize(rates_2, bins_pred)
     df['rate_cate'] = pd.Series(categories, index=df.index)
+    df['volume_in'] = pd.Series(categories_volume, index=df.index)
     df['rate_pred'] = pd.Series(categories_pred, index=df.index)
     return df
 
@@ -198,6 +218,7 @@ if __name__ == '__main__':
     rawdata_path = os.path.join(root_path, 'raw_data', '000905_20100101_20170515.data')
     outpath = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
     rawdata = read_pickle(rawdata_path)
+    print rawdata.columns
     # df = rawdata.iloc[:]
     # df = add_label_df(df)
     # df.to_pickle(outpath)
@@ -213,6 +234,6 @@ if __name__ == '__main__':
     print data.describe()
     data.to_pickle(outpath)
     print 'New dataframe save to', outpath
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = get_rnn_predict_dataset(data, 20, OUTPUT_SKEW)
-    print train_x[0], train_y[0]
-    print train_x.shape, train_y.shape
+    (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y) = get_rnn_predict_dataset(data, 20, OUTPUT_SKEW)
+    print train_x[0], train_vol[0], train_y[0]
+    print train_x.shape, train_vol.shape, train_y.shape
