@@ -12,7 +12,7 @@ from config import OUTPUT_SKEW, OUTPUT_BIN
 models_path = os.path.join(root_path, 'models')
 results_path = os.path.join(root_path, 'results')
 
-datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170515.data')
+datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170525.data')
 data = highfreq_helper.read_pickle(datafile_path)
 
 # datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170524.data')
@@ -180,7 +180,7 @@ def train_real_value(mins=120, label='ascent_hour'):
         print 'model saved to', os.path.join(models_path, model_name)
 
 if __name__ == '__main__':
-    days = 10
+    days = 20
     # train_rnn(days)
     # train_mlp(days)
     train_cnn(days)
