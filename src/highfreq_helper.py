@@ -9,6 +9,7 @@ from config import OUTPUT_SKEW, OUTPUT_BIN
 from config import val_ratio, test_ratio
 from config import time_steps
 from sklearn.preprocessing import StandardScaler
+from __future__ import print_function
 
 current_path = os.path.realpath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
@@ -130,9 +131,9 @@ def add_rate_categories(df, skew1, skew2, binnum1, binnum2):
     bins_volume = get_equal_bin_edges(df['volume_'+str(skew1)].values, binnum1)
     bins_pred = get_equal_bin_edges(df['rate_'+str(skew2)].values, binnum2)
     
-    print 'bins', bins
-    print 'bins volume', bins_volume
-    print 'bins pred', bins_pred
+    print('bins', bins)
+    print('bins volume', bins_volume)
+    print('bins pred', bins_pred)
     categories = np.digitize(rates_1, bins)
     categories_volume = np.digitize(volume_1, bins_volume)
     categories_pred = np.digitize(rates_2, bins_pred)
@@ -218,7 +219,7 @@ if __name__ == '__main__':
     rawdata_path = os.path.join(root_path, 'raw_data', '000905_20100101_20170525.data')
     outpath = os.path.join(root_path, 'data', '000905_20100101_20170525.data')
     rawdata = read_pickle(rawdata_path)
-    print rawdata.columns
+    print(rawdata.columns)
     # df = rawdata.iloc[:]
     # df = add_label_df(df)
     # df.to_pickle(outpath)
@@ -228,12 +229,12 @@ if __name__ == '__main__':
     # print train_x.shape, train_y.shape
 
     ''' ========================================================= '''
-    print 'Adding rate to data'
+    print('Adding rate to data')
     data = add_rate(rawdata, INPUT_SKEW, OUTPUT_SKEW)
     data = add_rate_categories(data, INPUT_SKEW, OUTPUT_SKEW, INPUT_BIN, OUTPUT_BIN)
-    print data.describe()
+    print(data.describe())
     data.to_pickle(outpath)
-    print 'New dataframe save to', outpath
+    print('New dataframe save to', outpath)
     (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y) = get_rnn_predict_dataset(data, 20, OUTPUT_SKEW)
-    print train_x[0], train_vol[0], train_y[0]
-    print train_x.shape, train_vol.shape, train_y.shape
+    print(train_x[0], train_vol[0], train_y[0])
+    print(train_x.shape, train_vol.shape, train_y.shape)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 from keras.models import Model, Sequential, load_model
 from keras.optimizers import RMSprop, Adam
 from keras.constraints import max_norm, unit_norm

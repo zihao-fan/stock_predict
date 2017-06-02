@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import numpy as np
 import os
 import network_model
@@ -63,7 +64,7 @@ def test(model_name, day_num=10):
     print('test_x shape', test_x.shape, 'test_y shape', test_y.shape)
     model = load_model(os.path.join(models_path, model_name))
     
-    print 'Testing the model'
+    print('Testing the model')
     prediction = model.predict([test_x, test_vol])
     train_labels = np.argmax(train_y, axis=-1)
     labels = np.argmax(test_y, axis=-1)
@@ -71,12 +72,12 @@ def test(model_name, day_num=10):
     train_stats = get_stats_dict(train_labels)
     prediction_stats = get_stats_dict(prediction)
     label_stats = get_stats_dict(labels)
-    print 'train label stats', train_stats
-    print 'prediciton stats', prediction_stats
-    print 'label stats', label_stats
+    print('train label stats', train_stats)
+    print('prediciton stats', prediction_stats)
+    print('label stats', label_stats)
 
     acc = evaluate(prediction, labels)
-    print 'acc', acc
+    print('acc', acc)
 
 def pretrain():
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_pretrain_dataset(data, 
@@ -100,7 +101,7 @@ def train_rnn(day_num=1):
                                                     OUTPUT_BIN)
 
     for e in range(epochs):
-        print '------------Training model-----------, epoch', e + 1
+        print('------------Training model-----------, epoch', e + 1)
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
         train_vol = train_vol[shuffled_rank]
@@ -110,7 +111,7 @@ def train_rnn(day_num=1):
             validation_data=([val_x, val_vol], val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
-        print 'model saved to', os.path.join(models_path, model_name)
+        print('model saved to', os.path.join(models_path, model_name))
 
 def train_mlp(day_num=10):
 
@@ -124,7 +125,7 @@ def train_mlp(day_num=10):
                                     OUTPUT_BIN)
 
     for e in range(epochs):
-        print '------------Training model-----------, epoch', e + 1
+        print('------------Training model-----------, epoch', e + 1)
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
         train_y = train_y[shuffled_rank]
@@ -133,7 +134,7 @@ def train_mlp(day_num=10):
             validation_data=(val_x, val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
-        print 'model saved to', os.path.join(models_path, model_name)
+        print('model saved to', os.path.join(models_path, model_name))
 
 def train_cnn(day_num=10):
 
@@ -149,7 +150,7 @@ def train_cnn(day_num=10):
                                     OUTPUT_BIN)
 
     for e in range(epochs):
-        print '------------Training model-----------, epoch', e + 1
+        print('------------Training model-----------, epoch', e + 1)
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
         train_vol = train_vol[shuffled_rank]
@@ -159,7 +160,7 @@ def train_cnn(day_num=10):
             validation_data=([val_x, val_vol], val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
-        print 'model saved to', os.path.join(models_path, model_name)
+        print('model saved to', os.path.join(models_path, model_name))
 
 def train_real_value(mins=120, label='ascent_hour'):
 
@@ -168,7 +169,7 @@ def train_real_value(mins=120, label='ascent_hour'):
     model = network_model.rnn_realvalue_model(mins, train_x.shape[2], hidden_size)
 
     for e in range(epochs):
-        print '------------Training model-----------, epoch', e + 1
+        print('------------Training model-----------, epoch', e + 1)
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
         train_y = train_y[shuffled_rank]
@@ -177,7 +178,7 @@ def train_real_value(mins=120, label='ascent_hour'):
             validation_data=(val_x, val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
-        print 'model saved to', os.path.join(models_path, model_name)
+        print('model saved to', os.path.join(models_path, model_name))
 
 if __name__ == '__main__':
     days = 20
