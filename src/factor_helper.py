@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import pandas as pd 
 import numpy as np 
 import os
@@ -6,7 +7,6 @@ import json
 from scipy import stats
 from config import val_ratio, test_ratio
 import cPickle
-from __future__ import print_function
 
 current_path = os.path.realpath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])

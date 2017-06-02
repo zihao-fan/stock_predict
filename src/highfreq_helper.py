@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import pandas as pd 
 import numpy as np 
 import os
@@ -9,7 +10,6 @@ from config import OUTPUT_SKEW, OUTPUT_BIN
 from config import val_ratio, test_ratio
 from config import time_steps
 from sklearn.preprocessing import StandardScaler
-from __future__ import print_function
 
 current_path = os.path.realpath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
