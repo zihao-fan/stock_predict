@@ -19,7 +19,7 @@ def mlp_model(num_class, seq_len, embedd_dim, hidden_size, out_num, activation_f
     flattened = Flatten()(embedding)
     output_layer = Dense(out_num+1, activation='softmax', name='main_output')(main_input)
 
-    model = Model(input=main_input, output=output_layer)
+    model = Model(inputs=main_input, outputs=output_layer)
     model.compile(optimizer='rmsprop', 
                 loss='categorical_crossentropy', metrics=['acc'])
     model.summary()
@@ -47,7 +47,7 @@ def cnn_model(num_class, seq_len, embedd_dim, filters, kernel_size, out_num, act
     flattened = Dense(filters // 2, activation='tanh')(concat)
     flattened = Dropout(dropout_rate)(flattened)
     output_layer = Dense(out_num + 1, activation='softmax', name='main_output')(flattened)
-    model = Model(input=[main_input, vol_input], output=output_layer)
+    model = Model(inputs=[main_input, vol_input], outputs=output_layer)
     model.compile(optimizer=adam, 
                 loss='categorical_crossentropy', metrics=['acc'])
     model.summary()
@@ -60,7 +60,7 @@ def rnn_pretrain_model(num_class, seq_len, embedd_dim, hidden_size, activation_f
     rnn_out = LSTM(hidden_size, return_sequences=True)(rnn_mid)
     output_layer = TimeDistributed(Dense(num_class+1, activation='softmax', name='main_output'), name='output')(rnn_out)
 
-    model = Model(input=main_input, output=output_layer)
+    model = Model(inputs=main_input, outputs=output_layer)
     model.compile(optimizer=adam, 
                 loss='categorical_crossentropy', metrics=['acc'])
     model.summary()
@@ -68,9 +68,10 @@ def rnn_pretrain_model(num_class, seq_len, embedd_dim, hidden_size, activation_f
 
 def rnn_factor_model(seq_len, feature_in, hidden_size):
     main_input = Input(shape=(seq_len, feature_in),  name='main_input')
-    rnn_out = GRU(hidden_size, return_sequences=False)(main_input)
+    bn = BatchNormalization()(main_input)
+    rnn_out = LSTM(hidden_size, return_sequences=False)(bn)
     output_layer = Dense(3, activation='softmax')(rnn_out)
-    model = Model(input=main_input, output=output_layer)
+    model = Model(inputs=main_input, outputs=output_layer)
     model.compile(optimizer=adam, 
                 loss='categorical_crossentropy', metrics=['acc'])
     model.summary()
@@ -88,7 +89,7 @@ def rnn_classification_model(num_class, seq_len, embedd_dim, hidden_size, out_nu
     # hidden_after_rnn = Dense(hidden_size, activation=activation_func)(lstm_out)
     output_layer = Dense(out_num+1, activation='softmax')(concat)
 
-    model = Model(input=[main_input, vol_input], output=output_layer)
+    model = Model(inputs=[main_input, vol_input], outputs=output_layer)
     model.compile(optimizer=adam, 
                 loss='categorical_crossentropy', metrics=['acc'])
     model.summary()

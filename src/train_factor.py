@@ -10,11 +10,14 @@ from factor_helper import root_path
 from config import batch_size, epochs, time_steps, embedding_dim, hidden_size, kernel_size, filters
 
 dataset_path = '/research/zihao/factor_dataset.cpickle'
+models_path = os.path.join(root_path, 'models')
+results_path = os.path.join(root_path, 'results')
+
 (train_x, train_y, val_x, val_y, test_x, test_y) = pickle.load(open(dataset_path, 'rb'))
 train_y = to_categorical(train_y)
 val_y = to_categorical(val_y)
 test_y = to_categorical(test_y)
-
+print(np.isnan(train_x).any(), np.isnan(train_y).any())
 print(train_x.shape, train_y.shape)
 
 def evaluate(prediction, label):
@@ -64,13 +67,14 @@ def test(model_name):
     print('acc', acc)
 
 def train_rnn():
-    model = network_model.rnn_factor_model(24, 79, 50)
+    global train_x, train_y, val_x, val_y, test_x, test_y
+    model = network_model.rnn_factor_model(24, 79, 100)
     for e in range(epochs):
         print('------------Training model-----------, epoch', e + 1)
         shuffled_rank = np.random.permutation(train_x.shape[0])
         train_x = train_x[shuffled_rank]
         train_y = train_y[shuffled_rank]
-        model.fit([train_x, train_vol], train_y, batch_size=batch_size,
+        model.fit(train_x, train_y, batch_size=batch_size,
             validation_data=(val_x, val_y))
         model_name = 'epoch_' + str(e + 1) + '_predict.model'
         model.save(os.path.join(models_path, model_name))
@@ -78,4 +82,4 @@ def train_rnn():
 
 if __name__ == '__main__':
     train_rnn()
-    # test('epoch_' + str(epochs) + '_predict.model')
+    test('epoch_' + str(epochs) + '_predict.model')

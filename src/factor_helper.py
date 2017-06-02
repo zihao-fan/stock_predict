@@ -16,7 +16,7 @@ label_thresh = [-10.0, -0.03, 0.03, 10.0]
 def csv_to_pd(filename):
     full_path = os.path.join(root_path, 'raw_data', filename)
     df = pd.read_csv(full_path)
-    df.sort(columns=['secID'], inplace=True)
+    df.sort_values('secID', inplace=True)
     df.set_index(keys=['secID'], drop=False, inplace=True)
     ids = df['secID'].unique().tolist()
 
@@ -37,7 +37,7 @@ def select_by_id(df, price, secid=''):
         part_df = df.loc[df.secID == secid].copy()
     else:
         part_df = df.copy()
-    part_df.sort(columns=['date'], inplace=True)
+    part_df.sort_values('date', inplace=True)
     part_df = part_df.set_index(keys=['date'])
     part_df = part_df.drop(['secID'], axis=1)
     part_df = part_df.fillna(axis=1, method='ffill')
@@ -52,6 +52,8 @@ def select_by_id(df, price, secid=''):
     part_df['next_month'] = (part_df['close_price'].shift(-1) - part_df['close_price']) / part_df['close_price']
     part_df['next_month'] = pd.cut(part_df['next_month'], bins=label_thresh, labels=[0,1,2]).astype(int)
     part_df = part_df[:-1]
+    part_df = part_df.dropna(axis=0, how='any')
+
     return part_df
 
 def split_data(data):
