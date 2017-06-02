@@ -6,7 +6,7 @@ import os
 import json
 from scipy import stats
 from config import val_ratio, test_ratio
-import cPickle
+import pickle
 
 current_path = os.path.realpath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
@@ -24,7 +24,7 @@ def csv_to_pd(filename):
     with open (os.path.join(root_path, 'data', 'factor_ids.json'), 'w') as f:
         json.dump(ids, f)
 
-    print 'Data saved.'
+    print('Data saved.')
 
 def read_price(filename):
     full_path = os.path.join(root_path, 'raw_data', filename)
@@ -103,7 +103,7 @@ def get_factor_dataset(time_steps):
         train_y.append(train_yy)
         val_y.append(val_yy)
         test_y.append(test_yy)
-        print idx
+        print(idx)
 
     train_x = np.concatenate(train_x, axis=0)
     train_y = np.concatenate(train_y, axis=0)
@@ -113,9 +113,10 @@ def get_factor_dataset(time_steps):
     test_y = np.concatenate(test_y, axis=0)
 
     full_path = os.path.join(root_path, 'data', 'factor_dataset.cpickle')
-    cPickle.dump((train_x, train_y, val_x, val_y, test_x, test_y), open(full_path, 'wb'))
-    print 'Saved to', full_path
+    dataset_path = '/research/zihao/factor_dataset.cpickle'
+    pickle.dump((train_x, train_y, val_x, val_y, test_x, test_y), open(dataset_path, 'wb'))
+    print('Saved to', dataset_path)
 
 if __name__ == '__main__':
-    # csv_to_pd('select_factor.csv')
+    csv_to_pd('select_factor.csv')
     get_factor_dataset(24)

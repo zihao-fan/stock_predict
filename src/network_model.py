@@ -66,13 +66,13 @@ def rnn_pretrain_model(num_class, seq_len, embedd_dim, hidden_size, activation_f
     model.summary()
     return model
 
-def rnn_realvalue_model(seq_len, feature_in, hidden_size):
+def rnn_factor_model(seq_len, feature_in, hidden_size):
     main_input = Input(shape=(seq_len, feature_in),  name='main_input')
-    rnn_out = LSTM(hidden_size, dropout=dropout_rate, return_sequences=False)(main_input)
-    output_layer = Dense(1, activation='sigmoid')(rnn_out)
+    rnn_out = GRU(hidden_size, return_sequences=False)(main_input)
+    output_layer = Dense(3, activation='softmax')(rnn_out)
     model = Model(input=main_input, output=output_layer)
     model.compile(optimizer=adam, 
-                loss='binary_crossentropy', metrics=['acc'])
+                loss='categorical_crossentropy', metrics=['acc'])
     model.summary()
     return model
 
