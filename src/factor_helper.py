@@ -59,9 +59,7 @@ def select_by_id(df, price, secid=''):
 def split_data(data):
     ntest = int(round(len(data) * (1 - test_ratio) ))
     nval = int(round(len(data[:ntest]) * (1 - val_ratio) ))
-
     nd_train, nd_val, nd_test = data[:nval], data[nval:ntest], data[ntest:]
-
     return nd_train, nd_val, nd_test
 
 def rnn_data(data, time_steps):
