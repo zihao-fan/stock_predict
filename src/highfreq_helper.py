@@ -216,8 +216,8 @@ def generate_rnn_data(df, time_steps, label):
 
 
 if __name__ == '__main__':
-    rawdata_path = os.path.join(root_path, 'raw_data', '000905_20100101_20170525.data')
-    outpath = os.path.join(root_path, 'data', '000905_20100101_20170525.data')
+    rawdata_path = os.path.join(root_path, 'raw_data', '000905_20100101_20170524.data')
+    outpath = os.path.join(root_path, 'data', '000905_20100101_20170524.data')
     rawdata = read_pickle(rawdata_path)
     print(rawdata.columns)
     # df = rawdata.iloc[:]

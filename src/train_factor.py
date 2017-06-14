@@ -53,6 +53,8 @@ def test(model_name):
     
     print('Testing the model')
     prediction = model.predict(test_x)
+    max_confidence = np.max(prediction, axis=1)
+
     train_labels = np.argmax(train_y, axis=-1)
     labels = np.argmax(test_y, axis=-1)
     prediction = np.argmax(prediction, axis=-1)
@@ -63,8 +65,33 @@ def test(model_name):
     print('prediciton stats', prediction_stats)
     print('label stats', label_stats)
 
+    numbers = len(max_confidence)
+    sorted_index = np.argsort(-max_confidence)
+    
+    print("All predictions")
     acc = evaluate(prediction, labels)
     print('acc', acc)
+    
+    prediction = prediction[sorted_index]
+    labels = labels[sorted_index]
+    print("Top 10%")
+    acc = evaluate(prediction[:int(0.1*numbers)], labels[:int(0.1*numbers)])
+    print('acc', acc)
+
+def train_cnn():
+    global train_x, train_y, val_x, val_y, test_x, test_y
+    model = network_model.cnn_factor_model(24, 79, 100, 24)
+    # model = network_model.mlp_factor_model(24, 79)
+    for e in range(epochs):
+        print('------------Training model-----------, epoch', e + 1)
+        shuffled_rank = np.random.permutation(train_x.shape[0])
+        train_x = train_x[shuffled_rank]
+        train_y = train_y[shuffled_rank]
+        model.fit(train_x, train_y, batch_size=batch_size,
+            validation_data=(val_x, val_y))
+        model_name = 'epoch_' + str(e + 1) + '_predict.model'
+        model.save(os.path.join(models_path, model_name))
+        print('model saved to', os.path.join(models_path, model_name))
 
 def train_rnn():
     global train_x, train_y, val_x, val_y, test_x, test_y
@@ -81,5 +108,6 @@ def train_rnn():
         print('model saved to', os.path.join(models_path, model_name))
 
 if __name__ == '__main__':
-    train_rnn()
+    train_cnn()
+    # train_rnn()
     test('epoch_' + str(epochs) + '_predict.model')

@@ -13,11 +13,11 @@ from config import OUTPUT_SKEW, OUTPUT_BIN
 models_path = os.path.join(root_path, 'models')
 results_path = os.path.join(root_path, 'results')
 
-datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170525.data')
-data = highfreq_helper.read_pickle(datafile_path)
-
-# datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170524.data')
+# datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170525.data')
 # data = highfreq_helper.read_pickle(datafile_path)
+
+datafile_path = os.path.join(root_path, 'data', '000905_20100101_20170524.data')
+data = highfreq_helper.read_pickle(datafile_path)
 
 def evaluate(prediction, label):
     total_number = 0
@@ -66,6 +66,9 @@ def test(model_name, day_num=10):
     
     print('Testing the model')
     prediction = model.predict([test_x, test_vol])
+    # prediction = model.predict(test_x)
+    max_confidence = np.max(prediction, axis=1)
+
     train_labels = np.argmax(train_y, axis=-1)
     labels = np.argmax(test_y, axis=-1)
     prediction = np.argmax(prediction, axis=-1)
@@ -76,7 +79,17 @@ def test(model_name, day_num=10):
     print('prediciton stats', prediction_stats)
     print('label stats', label_stats)
 
+    numbers = len(max_confidence)
+    sorted_index = np.argsort(-max_confidence)
+    
+    print("All predictions")
     acc = evaluate(prediction, labels)
+    print('acc', acc)
+
+    prediction = prediction[sorted_index]
+    labels = labels[sorted_index]
+    print("Top 10%")
+    acc = evaluate(prediction[:int(0.1*numbers)], labels[:int(0.1*numbers)])
     print('acc', acc)
 
 def pretrain():
@@ -115,7 +128,7 @@ def train_rnn(day_num=1):
 
 def train_mlp(day_num=10):
 
-    (train_x, train_y), (val_x, val_y), (test_x, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
+    (train_x, train_vol, train_y), (val_x, val_vol, val_y), (test_x, test_vol, test_y) = highfreq_helper.get_rnn_predict_dataset(data, 
                                                                             day_num * time_steps, OUTPUT_SKEW)
     print('train_x shape', train_x.shape, 'train_y shape', train_y.shape)
     model = network_model.mlp_model(INPUT_BIN,
