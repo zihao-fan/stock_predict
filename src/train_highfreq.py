@@ -9,6 +9,7 @@ from keras.models import load_model
 from config import batch_size, epochs, time_steps, embedding_dim, hidden_size, kernel_size, filters
 from config import INPUT_SKEW, INPUT_BIN
 from config import OUTPUT_SKEW, OUTPUT_BIN
+from scipy.stats import normaltest
 
 models_path = os.path.join(root_path, 'models')
 results_path = os.path.join(root_path, 'results')
@@ -195,8 +196,11 @@ def train_real_value(mins=120, label='ascent_hour'):
 
 if __name__ == '__main__':
     days = 20
+    # array = data['rate_1'].as_matrix()
+    # res1, res2 = normaltest(np.asarray([1.0]*1000))
+    # print(res1, res2)
     # train_rnn(days)
     # train_mlp(days)
-    train_cnn(days)
+    # train_cnn(days)
     # train_real_value()
-    test('epoch_' + str(epochs) + '_predict.model', days)
+    # test('epoch_' + str(epochs) + '_predict.model', days)
